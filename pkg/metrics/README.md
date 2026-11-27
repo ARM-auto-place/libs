@@ -25,7 +25,7 @@ func WorkerMetricsOrNoop(m *WorkerMetrics) IWorkerMetrics
 
 Создаёт набор метрик воркера (`processed_total`, `process_duration_seconds`,
 `queue_length`, `active_workers`, `step_duration_seconds`, `errors_total`,
-`retry_total`, `retry_delay_seconds`, `health`, `restart_total`, `kafka_lag`).
+`retry_total`, `retry_delay_seconds`, `health`, `restart_total`).
 `WorkerMetricsOrNoop(nil)` возвращает no-op реализацию (`IWorkerMetrics`), если
 метрики не нужны.
 

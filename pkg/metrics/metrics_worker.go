@@ -44,9 +44,6 @@ type IWorkerMetrics interface {
 	// Worker health
 	SetHealth(name string, healthy float64) // 1 = healthy, 0 = unhealthy
 	IncRestartCount(name string)
-
-	// Kafka lag
-	SetKafkaLag(name string, lag float64)
 }
 
 type WorkerMetrics struct {
@@ -73,9 +70,6 @@ type WorkerMetrics struct {
 	// Worker health
 	HealthGauge     *prometheus.GaugeVec
 	RestartCountVec *prometheus.CounterVec
-
-	// Kafka lag
-	KafkaLagGauge *prometheus.GaugeVec
 }
 
 func NewWorkerMetrics(namespace, subsystem string) (*WorkerMetrics, error) {
@@ -196,16 +190,6 @@ func NewWorkerMetrics(namespace, subsystem string) (*WorkerMetrics, error) {
 		[]string{"name"},
 	)
 
-	// Kafka lag
-	kafkaLagGauge := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Subsystem: subsystem,
-			Name:      "kafka_lag",
-			Help:      "Kafka consumer lag",
-		},
-		[]string{"name"},
-	)
 	metrics := []prometheus.Collector{
 		calcCountVec,
 		calcDurationVec,
@@ -218,7 +202,6 @@ func NewWorkerMetrics(namespace, subsystem string) (*WorkerMetrics, error) {
 		retryDelayVec,
 		healthGauge,
 		restartCountVec,
-		kafkaLagGauge,
 	}
 	for _, metric := range metrics {
 		if err := prometheus.Register(metric); err != nil {
@@ -247,8 +230,6 @@ func NewWorkerMetrics(namespace, subsystem string) (*WorkerMetrics, error) {
 
 		HealthGauge:     healthGauge,
 		RestartCountVec: restartCountVec,
-
-		KafkaLagGauge: kafkaLagGauge,
 	}, nil
 }
 
@@ -302,8 +283,4 @@ func (wm *WorkerMetrics) SetHealth(name string, healthy float64) {
 
 func (wm *WorkerMetrics) IncRestartCount(name string) {
 	wm.RestartCountVec.WithLabelValues(name).Inc()
-}
-
-func (wm *WorkerMetrics) SetKafkaLag(name string, lag float64) {
-	wm.KafkaLagGauge.WithLabelValues(name).Set(lag)
 }

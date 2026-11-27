@@ -68,12 +68,6 @@ func Test_WorkerMetrics(t *testing.T) {
 		assert.Equal(t, float64(3), testutil.ToFloat64(wm.RestartCountVec.WithLabelValues("test_worker")))
 	})
 
-	t.Run("KafkaLag", func(t *testing.T) {
-		wm.SetKafkaLag("test_worker", 100.0)
-		assert.Equal(t, float64(100.0), testutil.ToFloat64(wm.KafkaLagGauge.WithLabelValues("test_worker")))
-		wm.SetKafkaLag("test_worker", 250.0)
-		assert.Equal(t, float64(250.0), testutil.ToFloat64(wm.KafkaLagGauge.WithLabelValues("test_worker")))
-	})
 }
 
 func Test_WorkerMetrics_StructFields(t *testing.T) {
@@ -95,7 +89,7 @@ func Test_WorkerMetrics_StructFields(t *testing.T) {
 	assert.NotNil(t, wm.RetryDelayVec, "RetryDelayVec should be initialized")
 	assert.NotNil(t, wm.HealthGauge, "HealthGauge should be initialized")
 	assert.NotNil(t, wm.RestartCountVec, "RestartCountVec should be initialized")
-	assert.NotNil(t, wm.KafkaLagGauge, "KafkaLagGauge should be initialized")
+
 }
 
 func useTestRegistry(t *testing.T) {

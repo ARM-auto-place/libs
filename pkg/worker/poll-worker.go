@@ -1,4 +1,4 @@
-// File poll-worker.go contains the LEGACY confluent-kafka single-message poll
+// File poll-worker.go contains the single-message poll
 // worker. It is kept only for backward compatibility and should not be used in
 // new code — prefer reader-worker.go (TickerWorker) or the poll_worker
 // sub-package (franz-go batch polling).
@@ -6,14 +6,12 @@ package worker
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ARM-auto-place/libs/pkg/metrics"
 	"github.com/cenkalti/backoff/v4"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -26,9 +24,6 @@ type pollWorkerImpl[Req any, Res any] struct {
 	name        string
 	tickCount   uint // for periodic lag updates
 	MaxRetries  uint64
-
-	kafkaProducer      *kafka.Producer
-	kafkaProducerTopic string
 }
 
 var (
@@ -107,14 +102,6 @@ func (w *pollWorkerImpl[Req, Res]) tick(ctx context.Context, poller Poller[Req],
 	if err != nil && !errors.Is(err, ErrSkipable) {
 		w.logger.Error().Err(err).Interface("req", msg.Payload).Msg("could not commit")
 		w.metrics.IncError(w.name, "process_failed")
-		//send to dl topics
-		if w.kafkaProducer != nil {
-			err = w.SentToDL(msg)
-			if err != nil {
-				w.logger.Error().Err(err).Interface("req", msg.Payload).Msg("could not send to dl")
-			}
-			w.metrics.IncError(w.name, "send_dl")
-		}
 		return err
 	}
 
@@ -133,48 +120,14 @@ func (w *pollWorkerImpl[Req, Res]) tick(ctx context.Context, poller Poller[Req],
 	log.Debug().Interface("req", msg.Payload).Msg("request done")
 
 	w.tickCount++
-	// Update lag every 100 ticks
-	if w.tickCount%100 == 0 {
-		lag, err := poller.GetLag(ctx)
-		if err != nil {
-			w.logger.Debug().Err(err).Msg("could not get kafka lag")
-		} else {
-			w.metrics.SetKafkaLag(w.name, lag)
-		}
-	}
 
 	return nil
-}
-
-func (w *pollWorkerImpl[Req, Res]) SentToDL(msg *Message[Req]) error {
-	var key []byte
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("could not marshal: %w", err)
-	}
-	if msg.Metadata != nil {
-		metadata, ok := msg.Metadata.(*kafka.Message)
-		if !ok {
-			w.logger.Info().Msg("invalid message metadata type")
-		} else {
-			key = metadata.Key
-		}
-	}
-	err = w.kafkaProducer.Produce(
-		&kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &w.kafkaProducerTopic, Partition: kafka.PartitionAny},
-			Value:          data,
-			Key:            key,
-		}, nil,
-	)
-	return err
 }
 
 func (w *pollWorkerImpl[Req, Res]) Start(ctx context.Context, poller Poller[Req], processor Processor[Req, Res], writer Writer[Res]) error {
 	for {
 		select {
 		case <-ctx.Done():
-			w.logger.Info().Msg("kafka consumer stopped")
 			return nil
 		default:
 			if err := w.tick(ctx, poller, processor, writer); err != nil {
@@ -199,17 +152,13 @@ func NewPollWorker[Req any, Res any](
 	maxTickRetries uint64,
 	m *metrics.WorkerMetrics,
 	name string,
-	producer *kafka.Producer,
-	kafkaProducerTopic string,
 ) PollWorker[Req, Res] {
 	return &pollWorkerImpl[Req, Res]{
-		logger:             logger,
-		tickTimeout:        tickTimeout,
-		pollTimeout:        pollTimeout,
-		MaxRetries:         maxTickRetries,
-		metrics:            metrics.WorkerMetricsOrNoop(m),
-		name:               name,
-		kafkaProducer:      producer,
-		kafkaProducerTopic: kafkaProducerTopic,
+		logger:      logger,
+		tickTimeout: tickTimeout,
+		pollTimeout: pollTimeout,
+		MaxRetries:  maxTickRetries,
+		metrics:     metrics.WorkerMetricsOrNoop(m),
+		name:        name,
 	}
 }

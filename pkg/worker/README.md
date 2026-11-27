@@ -52,12 +52,8 @@ func NewReaderWorker[Req any, Res any](
 | `ContextTimeout` | Общий таймаут на один тик. |
 | `ItemProcessTimeout` | Таймаут на обработку одного элемента. Если `0` — берётся значение `ContextTimeout`. |
 
-### `poll_worker/*` — батчевый poll-воркер на franz-go
 
-Батчевое чтение из Kafka (franz-go) с опциональной транзакцией pgx на каждое
-сообщение. См. [`poll_worker/README.md`](poll_worker/README.md).
-
-### `poll-worker.go` — LEGACY poll-воркер (confluent-kafka) — не использовать в новом коде
+### `poll-worker.go` —  poll-воркер — не использовать в новом коде
 
 Оставлен только для обратной совместимости. Он тянет **одно сообщение** за тик
 через confluent-kafka, не использует транзакции БД и заменён на
@@ -67,7 +63,6 @@ func NewReaderWorker[Req any, Res any](
 
 - `interfaces.go` — базовые интерфейсы (`Reader`, `Processor`, `Writer`,
   `TickerWorker`, `Poller`, `PollWorker`, `ReaderWorkerParams`, `Message`).
-- `kafka-poller.go` — Kafka poller (confluent-kafka) для legacy-воркера.
 - `poll-worker-dl.go` — хелперы dead-letter для legacy-воркера.
 - `nil-writer.go` — no-op `Writer`.
 - `worker_test.go` — ручные smoke-тесты.

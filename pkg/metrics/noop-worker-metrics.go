@@ -20,7 +20,6 @@ func (NoopWorkerMetrics) IncRetryCount(name string)                             
 func (NoopWorkerMetrics) ObserveRetryDelay(name string, duration time.Duration) {}
 func (NoopWorkerMetrics) SetHealth(name string, healthy float64)                {}
 func (NoopWorkerMetrics) IncRestartCount(name string)                           {}
-func (NoopWorkerMetrics) SetKafkaLag(name string, lag float64)                  {}
 
 func WorkerMetricsOrNoop(m *WorkerMetrics) IWorkerMetrics {
 	if m == nil {
